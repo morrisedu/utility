@@ -1,0 +1,320 @@
+{% extends 'base.html' %}
+{% include 'material/includes/material_css.html' %}
+{% include 'material/includes/material_js.html' %}
+{% load static %}
+
+{% block styles %}
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+<link rel="stylesheet" href="{% static 'css/index.css' %}">
+{% endblock %}
+
+{% block content %}
+{{block.super}}
+<div class="return-message" id="msg">
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{message.tags}} m-2 text-center" id="msg" role="alert">
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+</div>
+<div class="container">
+    <div class="main-container">
+        <div class="top">
+            
+            <div class="previous-readings">
+                {{ current_user.name }}
+                <table class="table tbl" id="past-entries">
+                    <thead class="unit-reading">
+                        {% if user.is_authenticated %}
+                            {% if user.is_superuser %}
+                                <tr>
+                                    <th colspan=5 class="button-holder">
+                                        <div class="control-buttons">
+                                            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#unitsEntryModal">
+                                                <i class="fas fa-plus"></i>
+                                            </button>
+
+                                            <a href="{% url 'logout' %}" class="btn btn-danger" id="logout-btn">
+                                                <i class="fas fa-sign-out-alt"></i>
+                                            </a>
+                                        </div>
+                                    </th>
+                                </tr>
+                            {% endif %}    
+                        {% else %}
+                            <tr>
+                                <th colspan=5 class="button-holder">
+                                    <div class="control-buttons">
+                                        <a href="{% url 'login' %}" class="btn btn-primary" id="login-btn">
+                                            <i class="fas fa-sign-in-alt"></i>
+                                        </a>
+                                    </div>
+                                </th>
+                            </tr>
+                        {% endif %}
+                        <tr>
+                            <th>
+                                Month
+                            </th>
+                            <th>
+                                Reading
+                            </th>
+                            <th>
+                                Units Used
+                            </th>
+                            <th>
+                                Cost
+                            </th>
+                            {% if user.is_superuser %}
+                            <th>
+
+                            </th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody id="reading_table">
+                        {% if previous_readings %}
+                            {% for read in previous_readings %}
+                            <tr>
+                                <td>
+                                    {{ read.inputDate }}
+                                </td>
+                                <td>
+                                    {{ read.reading }}
+                                </td>
+                                <td>
+                                    {{ read.unitsUsed }}
+                                </td>
+                                <td>
+                                    {{ read.unitsCost }}
+                                </td>
+                                    {% if user.is_superuser %}
+                                    <td id="entry-controls">
+                                        <span>
+                                            <a href="" class="btn btn-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        </span>
+                                        <span>
+                                            <a href="{% url 'delete_unit' read.id %}" class="btn btn-primary">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </a>
+                                        </span>
+                                    </td>
+                                    {% endif %}
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan=5 class="text-center">
+                                    Insert reading
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% if  datas %}
+        <div class="bottom">
+            <div class="chart" id="chart-part">
+                <canvas id="units_chart"></canvas>
+            </div>
+        </div>
+    {% endif %}
+</div>
+</div>
+
+<div class="modal fade" id="unitsEntryModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenteredLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalCenteredLabel">Enter Current Reading</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <form class="" method="POST" id="readings-form">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="modal-form">
+                        <div class="form-part">
+                            <div class="form-group">
+                                <label for="meter-reading">Reading:</label>
+                                <input type="number" placeholder="0.00" step="0.01" name="meter-reading"
+                                    id="meter-reading" required>
+                            </div>
+
+
+                        </div>
+                        <div class="readings-part">
+                            <ul>
+                                <li>previous unit reading: {{ previousUnits.reading }}</li>
+                                <li>Cost per unit: {{ costPU.unitCost }}</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary mb-2" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary mb-2" id="submit-reading">Post</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3/dist/Chart.min.js"></script>
+<script src="{% static 'js/index.js' %}"></script>
+
+{% autoescape off %}
+<script type="text/javascript">
+    
+</script>
+{% endautoescape %}
+
+<script type="text/javascript">
+    setTimeout(function() {
+        $("#msg").fadeOut().empty();
+    }, 5000);
+</script>
+
+<script>
+    // Chart
+    var proc_data = {{ datas|safe }};
+    var proc_label = {{ labels|safe }};
+
+    var config = {
+        type: 'line',
+        data: {
+            datasets: [{
+                data: proc_data,
+                label: "Units Used"
+            }],
+            labels: proc_label
+        },
+        options: {
+            responsive: true
+        }
+    };
+
+    var ctx = document.getElementById('units_chart').getContext('2d');
+
+    window.onload = function() {
+        window.my_pie = new Chart(ctx, config);
+    }
+
+    $(document).ready(function() {        
+        // Get the CSRF token    
+        const csrftoken = getCookie("csrftoken");
+    
+        $("#readings-form").submit(function (e) {
+            // Prevent page from reloading
+            e.preventDefault();
+    
+            // Serialize the data for sending the form data
+            let data = {
+                units_used: $("#meter-reading").val(),
+                csrfmiddlewaretoken: csrftoken,
+            };
+    
+            // Make ajax POST call
+            $.ajax({
+                url: "{% url 'add_unit' %}",
+                type: "POST",
+                data: data,
+            }).done(function(response) {
+                if (response.status === "created") {
+                    // var temp = ``;
+                    // $(".target_name").append(temp);
+                    alert("Successfully added!");
+                    
+                    // Update chart
+                    $.ajax({
+                        url: "{% url 'get_readings' %}",
+                        type: "GET",
+                        dataType: "json"
+                    }).done(function(response) {
+                        // Chart update animation
+                        var optionsAnimation = {
+                            //Boolean - If we want to override with a hard coded scale
+                            scaleOverride : true,
+                            //** Required if scaleOverride is true **
+                            //Number - The number of steps in a hard coded scale
+                            scaleSteps : 10,
+                            //Number - The value jump in the hard coded scale
+                            scaleStepWidth : 10,
+                            //Number - The scale starting value
+                            scaleStartValue : 0
+                        };
+
+                        // Chart data update
+                        new_labels = response.labels;
+                        new_data = response.datas;
+
+                        config.data.labels.push(new_labels);
+                        config.data.datasets[0].data.push(new_data);
+
+                        window.my_pie.update();
+                    });
+
+                    
+                    $.ajax({
+                        url: "{% url 'get_latest_reading' %}",
+                        type: "GET",
+                        dataType: "json"
+                    }).done(function(response) {
+                        var delete_url = "{% url 'delete_unit' 0 %}".replace("0", response.id);
+
+                        let temp = `
+                        <tr>
+                            <td>
+                                ${response.date}
+                            </td>
+                            <td>
+                                ${response.reading}
+                            </td>
+                            <td>
+                                ${response.used_units}
+                            </td>
+                            <td>
+                                ${response.units_cost}
+                            </td>
+                                {% if user.is_superuser %}
+                                    <td id="entry-controls">
+                                        <span>
+                                            <a href="" class="btn btn-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        </span>
+                                        <span>
+                                            <a href=${delete_url} class="btn btn-primary">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </a>
+                                        </span>
+                                </td>
+                                {% endif %}
+                        </tr>
+                        `
+                        $("#reading_table").prepend(temp);
+                    })
+                } else {
+                    alert("There was a problem adding the reading!");
+                }
+            })
+
+            $(this).trigger("reset");
+            $("#unitsEntryModal").modal("hide");
+        })
+    })
+</script>
+{% endblock %}
