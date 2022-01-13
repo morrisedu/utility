@@ -1,5 +1,9 @@
 # my_utility
-Utility Application* Link to live site: [mbokahub]()
+Utility Application* Link to live site: [utility](https://utils-staging.herokuapp.com/)
+
+use the following credentials:
+    username: testuser
+    password: testpassword
 
 ## Description
 An application to track basic quantifiable usages of day to day life
